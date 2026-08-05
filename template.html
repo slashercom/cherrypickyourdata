@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S&amp;P 500 &mdash; Rolling Returns Instrument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root{
+    --ink: #15171C;
+    --ink-2: #1C1F26;
+    --ink-3: #23262F;
+    --hair: #33363F;
+    --parchment: #EAE6DA;
+    --parchment-dim: #A9A69C;
+    --amber: #C9A227;
+    --amber-bright: #E4BE45;
+    --teal: #3E8E8A;
+    --teal-bright: #52ABA6;
+    --rose: #B5544A;
+    --rose-bright: #D2695D;
+    --controls-bg: rgba(21,23,28,0.92);
+    --glow-amber: rgba(201,162,39,0.08);
+    --glow-teal: rgba(62,142,138,0.08);
+    --grid-line: rgba(255,255,255,0.06);
+    --zero-line: rgba(234,230,218,0.35);
+  }
+  [data-theme="light"]{
+    --ink: #FBF9F4;
+    --ink-2: #FFFFFF;
+    --ink-3: #F1EDE3;
+    --hair: #DCD6C8;
+    --parchment: #23262C;
+    --parchment-dim: #6E6C63;
+    --amber: #B08A16;
+    --amber-bright: #8A6B0E;
+    --teal: #2E7D79;
+    --teal-bright: #216F6B;
+    --rose: #A8453B;
+    --rose-bright: #B14A3F;
+    --controls-bg: rgba(251,249,244,0.93);
+    --glow-amber: rgba(201,162,39,0.16);
+    --glow-teal: rgba(62,142,138,0.14);
+    --grid-line: rgba(0,0,0,0.07);
+    --zero-line: rgba(35,38,44,0.32);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--amber);color:var(--ink);}
+
+  a{color:var(--amber-bright);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    padding:64px 0 40px;
+    border-bottom:1px solid var(--hair);
+    background:
+      radial-gradient(ellipse 900px 400px at 15% 0%, var(--glow-amber), transparent 60%),
+      radial-gradient(ellipse 700px 400px at 90% 20%, var(--glow-teal), transparent 60%);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--teal-bright);
+    margin:0 0 18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--amber-bright);box-shadow:0 0 8px var(--amber-bright);}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(34px, 5.4vw, 58px);
+    line-height:1.04;
+    margin:0 0 20px;
+    letter-spacing:-0.01em;
+    max-width:14ch;
+  }
+  h1 em{font-style:italic;color:var(--amber-bright);}
+  .lede{
+    font-size:16.5px;
+    line-height:1.65;
+    color:var(--parchment-dim);
+    max-width:62ch;
+    margin:0 0 30px;
+  }
+  .lede strong{color:var(--parchment);font-weight:600;}
+
+  .ticker-row{
+    display:flex;
+    gap:36px;
+    flex-wrap:wrap;
+    font-family:'JetBrains Mono',monospace;
+    padding-top:22px;
+    border-top:1px dashed var(--hair);
+  }
+  .ticker-item .k{font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--parchment-dim);display:block;margin-bottom:5px;}
+  .ticker-item .v{font-size:20px;font-weight:600;color:var(--parchment);}
+  .ticker-item .v.pos{color:var(--teal-bright);}
+  .ticker-item .v.neg{color:var(--rose-bright);}
+
+  /* ---------- CONTROLS ---------- */
+  .controls{
+    position:sticky; top:0; z-index:40;
+    background:var(--controls-bg);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--hair);
+    padding:14px 0;
+  }
+  .controls .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .controls .label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;
+    text-transform:uppercase;color:var(--parchment-dim);margin-right:2px;white-space:nowrap;
+  }
+  .dial-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .dial{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;font-weight:600;
+    padding:7px 12px;
+    border-radius:20px;
+    border:1px solid var(--hair);
+    background:var(--ink-2);
+    color:var(--parchment-dim);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .dial:hover{border-color:var(--amber);color:var(--parchment);}
+  .dial.active{background:var(--amber);border-color:var(--amber);color:var(--ink);}
+  .dial.overlay-on{outline:2px solid var(--teal-bright);outline-offset:1px;}
+  .spacer{flex:1;}
+  .theme-btn{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;
+    display:flex;align-items:center;gap:7px;cursor:pointer;
+    background:var(--ink-2);color:var(--parchment-dim);
+    border:1px solid var(--hair);border-radius:20px;padding:7px 13px;
+    transition:all .15s ease;
+  }
+  .theme-btn:hover{border-color:var(--amber);color:var(--parchment);}
+  .theme-btn span:first-child{font-size:13px;line-height:1;}
+  .mode-toggle{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;
+    color:var(--parchment-dim);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+  }
+  .switch{width:34px;height:18px;border-radius:10px;background:var(--ink-3);border:1px solid var(--hair);position:relative;transition:.15s;}
+  .switch::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:var(--parchment-dim);top:2px;left:2px;transition:.15s;}
+  .mode-toggle.on .switch{background:var(--teal);border-color:var(--teal-bright);}
+  .mode-toggle.on .switch::after{left:18px;background:var(--ink);}
+
+  /* ---------- HERO CHART ---------- */
+  .hero-section{padding:44px 0 8px;}
+  .hero-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:6px;flex-wrap:wrap;}
+  .hero-title{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin:0;}
+  .hero-sub{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--parchment-dim);margin-top:4px;}
+  .stat-row{display:flex;gap:26px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;}
+  .stat{text-align:right;}
+  .stat .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--parchment-dim);display:block;}
+  .stat .v{font-size:19px;font-weight:700;}
+  .stat .d{font-size:10.5px;color:var(--parchment-dim);}
+  .stat.max .v{color:var(--teal-bright);}
+  .stat.min .v{color:var(--rose-bright);}
+
+  .hero-canvas-wrap{
+    position:relative;
+    height:420px;
+    margin-top:18px;
+    background:var(--ink-2);
+    border:1px solid var(--hair);
+    border-radius:10px;
+    padding:18px 14px 8px;
+  }
+  .legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--parchment-dim);}
+  .legend-row .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+
+  .method-note{
+    font-size:13.5px;color:var(--parchment-dim);line-height:1.6;margin-top:16px;padding-top:16px;
+    border-top:1px dashed var(--hair); max-width:80ch;
+  }
+  .method-note code{font-family:'JetBrains Mono',monospace;background:var(--ink-3);padding:1px 5px;border-radius:3px;font-size:12px;}
+
+  /* ---------- GRID ---------- */
+  .grid-section{padding:56px 0 80px;}
+  .grid-title{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin:0 0 4px;}
+  .grid-sub{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--parchment-dim);margin:0 0 26px;}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+    gap:16px;
+  }
+  .card{
+    background:var(--ink-2);
+    border:1px solid var(--hair);
+    border-radius:10px;
+    padding:16px 16px 10px;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .15s ease;
+    position:relative;
+  }
+  .card:hover{border-color:var(--amber);transform:translateY(-2px);}
+  .card.selected{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);}
+  .card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
+  .card-idx{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--parchment-dim);}
+  .card-title{font-family:'Fraunces',serif;font-size:17px;font-weight:500;}
+  .card-current{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;}
+  .card-current.pos{color:var(--teal-bright);}
+  .card-current.neg{color:var(--rose-bright);}
+  .card canvas{width:100%;display:block;}
+  .chart-box{position:relative;height:78px;width:100%;}
+  .card-foot{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parchment-dim);margin-top:4px;}
+
+  footer{
+    border-top:1px solid var(--hair);
+    padding:30px 0 60px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:var(--parchment-dim);
+    line-height:1.7;
+  }
+  footer a{color:var(--parchment-dim);text-decoration:underline;}
+
+  @media (max-width: 640px){
+    .hero-canvas-wrap{height:320px;}
+    .stat-row{gap:16px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow"><span class="dot"></span>S&amp;P 500 &middot; Rolling Return Instrument</p>
+    <h1>Ten lenses on the <em>same market.</em></h1>
+    <p class="lede">
+      The same index, the same monthly closes, run through ten different rolling windows &mdash;
+      from six months to twenty-five years. Each panel below re-annualizes the trailing return at
+      every point in time, so a short window jitters with every scare and rally while a long window
+      settles into the market's slow, underlying drift. <strong>Click any panel to bring it into focus</strong>,
+      or layer several on top of each other to see where the horizons agree &mdash; and where they don't.
+    </p>
+    <div class="ticker-row">
+      <div class="ticker-item">
+        <span class="k">Latest close (monthly)</span>
+        <span class="v" id="tk-level">&mdash;</span>
+      </div>
+      <div class="ticker-item">
+        <span class="k">As of</span>
+        <span class="v" id="tk-date">&mdash;</span>
+      </div>
+      <div class="ticker-item">
+        <span class="k">History spans</span>
+        <span class="v" id="tk-span">&mdash;</span>
+      </div>
+      <div class="ticker-item">
+        <span class="k">10&#8209;yr annualized, now</span>
+        <span class="v" id="tk-10y">&mdash;</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <span class="label">Horizon</span>
+    <div class="dial-group" id="dial-group"></div>
+    <div class="spacer"></div>
+    <button class="theme-btn" id="theme-btn" title="Switch between dark and light">
+      <span id="theme-icon">&#9789;</span><span id="theme-label">Dark</span>
+    </button>
+    <div class="mode-toggle" id="inflation-toggle">
+      <span>Inflation-adjusted</span>
+      <span class="switch"></span>
+    </div>
+    <div class="mode-toggle" id="overlay-toggle">
+      <span>Overlay mode</span>
+      <span class="switch"></span>
+    </div>
+  </div>
+</div>
+
+<section class="hero-section">
+  <div class="wrap">
+    <div class="hero-head">
+      <div>
+        <h2 class="hero-title" id="hero-title">10&#8209;Year Rolling Return</h2>
+        <div class="hero-sub" id="hero-sub">Annualized &middot; monthly resolution &middot; 1960&ndash;present</div>
+      </div>
+      <div class="stat-row" id="stat-row"></div>
+    </div>
+    <div class="hero-canvas-wrap">
+      <canvas id="hero-canvas"></canvas>
+    </div>
+    <div class="legend-row" id="legend-row"></div>
+    <p class="method-note">
+      Each series is the S&amp;P 500's total price change over the trailing window, converted to a
+      compounded <em>annual</em> rate: <code>((P&#8339; / P&#8339;&minus;w)^(1/years) &minus; 1) &times; 100</code>.
+      That puts every horizon on the same footing &mdash; a 6&#8209;month window and a 25&#8209;year window
+      both read out in "percent per year," even though one is dominated by the latest headline and the
+      other has lived through several full market cycles. Values below zero mean the index was lower,
+      annualized, than where that window started. Flip <strong>Inflation&#8209;adjusted</strong> above to
+      run the same calculation on CPI&#8209;deflated (constant&#8209;dollar) levels instead of nominal
+      ones &mdash; that's the difference between what the index <em>said</em> you made and what it was
+      actually worth in today's purchasing power.
+    </p>
+  </div>
+</section>
+
+<section class="grid-section">
+  <div class="wrap">
+    <h3 class="grid-title">All ten horizons</h3>
+    <p class="grid-sub">Click a panel to load it into the instrument above.</p>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Source data: monthly S&amp;P 500 closing levels, Standard &amp; Poor's / Robert Shiller series
+    via <a href="https://www.multpl.com/s-p-500-historical-prices/table/by-month" target="_blank" rel="noopener">multpl.com</a>,
+    __FIRST_DATE__ through __LAST_DATE__. Prices are not inflation-adjusted and exclude dividends.
+    The inflation-adjusted view uses multpl's CPI-deflated series (constant dollars, rebased to the
+    most recent month). Rolling annualized returns are recomputed from monthly closes and will differ
+    slightly from daily-resolution calculations. Built as a companion to a Python rolling-returns
+    script &mdash; same methodology, now in the browser and clickable.
+    <br><br>
+    Data through <strong>__LATEST_MONTH__</strong> &middot; page rebuilt __BUILD_DATE__ &middot;
+    checked daily, updates automatically as new monthly data is published.
+  </div>
+</footer>
+
+<script id="rolling-data" type="application/json">__DATA_JSON__</script>
+<script>
+const WINDOWS = __WINDOWS_JSON__;
+const RAW = JSON.parse(document.getElementById('rolling-data').textContent);
+
+if (typeof Chart === 'undefined') {
+  document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+    '<div style="background:#B5544A;color:#EAE6DA;padding:14px 18px;border-radius:8px;margin:20px 0;font-family:JetBrains Mono,monospace;font-size:13px;">' +
+    'Chart.js failed to load from the CDN (cdn.jsdelivr.net). Check your internet connection, or that jsdelivr.net is not blocked by an ad-blocker/firewall, then reload this page.' +
+    '</div>');
+  throw new Error('Chart.js not loaded');
+}
+
+let realMode = false;
+function currentSeries(){ return realMode ? RAW.series_real : RAW.series; }
+function currentLevel(){ return realMode ? RAW.level_real : RAW.level; }
+
+// palette: interpolate from teal (short horizon, jumpy) to amber (long horizon, settled)
+function lerp(a,b,t){return Math.round(a+(b-a)*t);}
+function hexToRgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
+const TEAL = hexToRgb('#52ABA6');
+const AMBER = hexToRgb('#E4BE45');
+function paletteColor(i, n){
+  const t = i/(n-1);
+  const r = lerp(TEAL[0],AMBER[0],t), g=lerp(TEAL[1],AMBER[1],t), b=lerp(TEAL[2],AMBER[2],t);
+  return rgbToHex(r,g,b);
+}
+WINDOWS.forEach((w,i)=>{ w.color = paletteColor(i, WINDOWS.length); });
+
+// chart colors are set in JS, so they must be updated when the CSS theme flips
+let lightTheme = false;
+let POS, NEG, POS_FILL, NEG_FILL, TICK, GRID, ZERO, TIP_BG, TIP_BORDER;
+
+function applyChartPalette(){
+  if(lightTheme){
+    POS = '#2E8C87'; NEG = '#BF5147';
+    POS_FILL = 'rgba(46,140,135,0.15)'; NEG_FILL = 'rgba(191,81,71,0.15)';
+    TICK = '#6E6C63'; GRID = 'rgba(0,0,0,0.07)'; ZERO = 'rgba(35,38,44,0.32)';
+    TIP_BG = '#FFFFFF'; TIP_BORDER = '#DCD6C8';
+  } else {
+    POS = '#52ABA6'; NEG = '#D2695D';
+    POS_FILL = 'rgba(82,171,166,0.14)'; NEG_FILL = 'rgba(210,105,93,0.14)';
+    TICK = '#A9A69C'; GRID = 'rgba(255,255,255,0.06)'; ZERO = 'rgba(234,230,218,0.35)';
+    TIP_BG = '#23262F'; TIP_BORDER = '#33363F';
+  }
+  const a = lightTheme ? hexToRgb('#216F6B') : TEAL;
+  const b = lightTheme ? hexToRgb('#B08A16') : AMBER;
+  WINDOWS.forEach((w,i)=>{
+    const t = i/(WINDOWS.length-1);
+    w.color = rgbToHex(lerp(a[0],b[0],t), lerp(a[1],b[1],t), lerp(a[2],b[2],t));
+  });
+}
+
+function fmtPct(v){
+  const s = v>=0? '+':'';
+  return s + v.toFixed(1) + '%';
+}
+function fmtMonth(d){
+  const [y,m] = d.split('-');
+  const names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[parseInt(m,10)-1] + ' ' + y;
+}
+function toDate(d){
+  const [y,m] = d.split('-');
+  return new Date(parseInt(y,10), parseInt(m,10)-1, 1);
+}
+
+function seriesStats(id){
+  const pts = currentSeries()[id];
+  let max = pts[0], min = pts[0];
+  for(const p of pts){ if(p.v>max.v) max=p; if(p.v<min.v) min=p; }
+  const current = pts[pts.length-1];
+  return {max, min, current};
+}
+
+// ---------- header ticker ----------
+function updateTicker(){
+  const lvl = currentLevel();
+  const lastLevel = lvl[lvl.length-1];
+  document.getElementById('tk-level').textContent = lastLevel.v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + (realMode ? ' (real)' : '');
+  document.getElementById('tk-date').textContent = fmtMonth(lastLevel.d);
+  document.getElementById('tk-span').textContent = fmtMonth(lvl[0].d) + ' \u2192 ' + fmtMonth(lastLevel.d);
+  const tenY = seriesStats('10-year').current.v;
+  const tk10 = document.getElementById('tk-10y');
+  tk10.textContent = fmtPct(tenY) + (realMode ? ' real' : ' nominal');
+  tk10.className = 'v ' + (tenY>=0?'pos':'neg');
+}
+updateTicker();
+
+// ---------- dial controls ----------
+const dialGroup = document.getElementById('dial-group');
+let activeId = '10-year';
+let overlayMode = false;
+let overlaySet = new Set(['10-year']);
+
+WINDOWS.forEach(w=>{
+  const b = document.createElement('button');
+  b.className = 'dial';
+  b.textContent = w.short;
+  b.dataset.id = w.id;
+  b.addEventListener('click', ()=>{
+    if(overlayMode){
+      if(overlaySet.has(w.id) && overlaySet.size>1) overlaySet.delete(w.id);
+      else overlaySet.add(w.id);
+    } else {
+      activeId = w.id;
+    }
+    render();
+  });
+  dialGroup.appendChild(b);
+});
+
+document.getElementById('overlay-toggle').addEventListener('click', function(){
+  overlayMode = !overlayMode;
+  this.classList.toggle('on', overlayMode);
+  if(overlayMode){ overlaySet = new Set([activeId]); }
+  render();
+});
+
+document.getElementById('inflation-toggle').addEventListener('click', function(){
+  realMode = !realMode;
+  this.classList.toggle('on', realMode);
+  render();
+});
+
+function setTheme(toLight){
+  lightTheme = toLight;
+  document.documentElement.setAttribute('data-theme', toLight ? 'light' : 'dark');
+  document.getElementById('theme-icon').innerHTML = toLight ? '&#9788;' : '&#9789;';
+  document.getElementById('theme-label').textContent = toLight ? 'Light' : 'Dark';
+  applyChartPalette();
+}
+
+document.getElementById('theme-btn').addEventListener('click', ()=>{
+  setTheme(!lightTheme);
+  render();
+});
+
+// respect the OS preference on first load, then let the button take over
+const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+setTheme(!!prefersLight);
+
+// ---------- hero chart ----------
+const heroCtx = document.getElementById('hero-canvas').getContext('2d');
+let heroChart = null;
+
+function buildDataset(w, forOverlay){
+  const pts = currentSeries()[w.id];
+  const lineColor = forOverlay ? w.color : undefined;
+  return {
+    label: w.label,
+    data: pts.map(p=>({x:toDate(p.d), y:p.v})),
+    borderWidth: forOverlay ? 2 : 1.6,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    pointHitRadius: 8,
+    tension: 0.15,
+    fill: forOverlay ? false : 'origin',
+    borderColor: forOverlay ? lineColor : POS,
+    backgroundColor: forOverlay ? 'transparent' : POS_FILL,
+    segment: forOverlay ? {} : {
+      borderColor: ctx => (ctx.p0.parsed.y < 0 || ctx.p1.parsed.y < 0) ? NEG : POS,
+      backgroundColor: ctx => (ctx.p0.parsed.y < 0 || ctx.p1.parsed.y < 0) ? NEG_FILL : POS_FILL,
+    }
+  };
+}
+
+const zeroLinePlugin = {
+  id: 'zeroLine',
+  afterDatasetsDraw(chart){
+    const {ctx, chartArea, scales} = chart;
+    const y0 = scales.y.getPixelForValue(0);
+    ctx.save();
+    ctx.strokeStyle = ZERO;
+    ctx.setLineDash([3,3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(chartArea.left, y0);
+    ctx.lineTo(chartArea.right, y0);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+function renderHero(){
+  const ids = overlayMode ? Array.from(overlaySet) : [activeId];
+  const wins = ids.map(id => WINDOWS.find(w=>w.id===id));
+  const datasets = wins.map(w => buildDataset(w, overlayMode && ids.length>1));
+
+  const titleEl = document.getElementById('hero-title');
+  const subEl = document.getElementById('hero-sub');
+  if(ids.length===1){
+    const w = wins[0];
+    const first = currentSeries()[w.id][0].d;
+    titleEl.innerHTML = w.label + ' Rolling Return' + (realMode ? ' <span style="color:var(--teal-bright);font-size:0.6em;vertical-align:middle;">&middot; inflation-adjusted</span>' : '');
+    subEl.textContent = 'Annualized \u00b7 monthly resolution \u00b7 ' + fmtMonth(first).split(' ')[1] + '\u2013present' + (realMode ? ' \u00b7 constant dollars' : ' \u00b7 nominal dollars');
+  } else {
+    titleEl.innerHTML = 'Overlay \u2014 ' + wins.map(w=>w.label).join(' vs ') + (realMode ? ' <span style="color:var(--teal-bright);font-size:0.6em;vertical-align:middle;">&middot; inflation-adjusted</span>' : '');
+    subEl.textContent = wins.length + ' horizons layered \u00b7 annualized \u00b7 monthly resolution' + (realMode ? ' \u00b7 constant dollars' : '');
+  }
+
+  if(heroChart) heroChart.destroy();
+  heroChart = new Chart(heroCtx, {
+    type:'line',
+    data:{datasets},
+    plugins:[zeroLinePlugin],
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:500},
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        x:{
+          type:'time',
+          time:{unit:'year', tooltipFormat:'MMM yyyy'},
+          grid:{color:GRID},
+          ticks:{color:TICK, font:{family:'JetBrains Mono', size:10.5}, maxRotation:0}
+        },
+        y:{
+          grid:{color:GRID},
+          ticks:{color:TICK, font:{family:'JetBrains Mono', size:10.5}, callback:v=>v+'%'}
+        }
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          titleColor:lightTheme?'#23262C':'#EAE6DA',
+          bodyColor:lightTheme?'#23262C':'#EAE6DA',
+          backgroundColor:TIP_BG,
+          borderColor:TIP_BORDER, borderWidth:1,
+          titleFont:{family:'JetBrains Mono', size:11},
+          bodyFont:{family:'JetBrains Mono', size:12},
+          padding:10,
+          callbacks:{
+            label: ctx => ' ' + ctx.dataset.label + ':  ' + fmtPct(ctx.parsed.y)
+          }
+        }
+      }
+    }
+  });
+
+  // legend row
+  const legendRow = document.getElementById('legend-row');
+  legendRow.innerHTML = '';
+  if(ids.length===1){
+    legendRow.innerHTML =
+      '<span><span class="sw" style="background:'+POS+'"></span>Positive annualized return</span>' +
+      '<span><span class="sw" style="background:'+NEG+'"></span>Negative annualized return</span>';
+  } else {
+    legendRow.innerHTML = wins.map(w=>'<span><span class="sw" style="background:'+w.color+'"></span>'+w.label+'</span>').join('');
+  }
+
+  // stat row (only meaningful for single view)
+  const statRow = document.getElementById('stat-row');
+  if(ids.length===1){
+    const s = seriesStats(ids[0]);
+    statRow.innerHTML =
+      '<div class="stat max"><span class="k">Peak</span><span class="v">'+fmtPct(s.max.v)+'</span><span class="d">'+fmtMonth(s.max.d)+'</span></div>' +
+      '<div class="stat min"><span class="k">Trough</span><span class="v">'+fmtPct(s.min.v)+'</span><span class="d">'+fmtMonth(s.min.d)+'</span></div>' +
+      '<div class="stat now"><span class="k">Current</span><span class="v" style="color:'+(s.current.v>=0?POS:NEG)+'">'+fmtPct(s.current.v)+'</span><span class="d">'+fmtMonth(s.current.d)+'</span></div>';
+  } else {
+    statRow.innerHTML = '<div class="stat"><span class="k">Mode</span><span class="v" style="font-size:14px;color:var(--parchment-dim)">Comparing horizons directly</span></div>';
+  }
+}
+
+function renderDials(){
+  document.querySelectorAll('.dial').forEach(b=>{
+    const id = b.dataset.id;
+    b.classList.toggle('active', !overlayMode && id===activeId);
+    b.classList.toggle('overlay-on', overlayMode && overlaySet.has(id));
+  });
+}
+
+// ---------- grid of mini charts ----------
+const grid = document.getElementById('grid');
+const miniCharts = {};
+
+WINDOWS.forEach((w, i)=>{
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = w.id;
+  const s = seriesStats(w.id);
+  const idxLabel = String(i+1).padStart(2,'0');
+  card.innerHTML =
+    '<div class="card-head">' +
+      '<span class="card-idx">'+idxLabel+'</span>' +
+      '<span class="card-current '+(s.current.v>=0?'pos':'neg')+'">'+fmtPct(s.current.v)+'</span>' +
+    '</div>' +
+    '<div class="card-title">'+w.label+'</div>' +
+    '<div class="chart-box"><canvas></canvas></div>' +
+    '<div class="card-foot"><span>Trough '+fmtPct(s.min.v)+'</span><span>Peak '+fmtPct(s.max.v)+'</span></div>';
+  card.addEventListener('click', ()=>{
+    if(overlayMode){
+      if(overlaySet.has(w.id) && overlaySet.size>1) overlaySet.delete(w.id);
+      else overlaySet.add(w.id);
+    } else {
+      activeId = w.id;
+    }
+    render();
+    document.querySelector('.hero-section').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  grid.appendChild(card);
+
+  const canvas = card.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const pts = currentSeries()[w.id];
+  const mini = new Chart(ctx, {
+    type:'line',
+    data:{
+      datasets:[{
+        data: pts.map(p=>({x:toDate(p.d),y:p.v})),
+        borderWidth:1.3,
+        pointRadius:0,
+        pointHoverRadius:0,
+        tension:0.15,
+        fill:'origin',
+        segment:{
+          borderColor: c => (c.p0.parsed.y<0||c.p1.parsed.y<0)? NEG : POS,
+          backgroundColor: c => (c.p0.parsed.y<0||c.p1.parsed.y<0)? NEG_FILL : POS_FILL,
+        }
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:false,
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        x:{type:'time', time:{unit:'year'}, display:false},
+        y:{display:false}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:TIP_BG, borderColor:TIP_BORDER, borderWidth:1,
+          titleColor:lightTheme?'#23262C':'#EAE6DA', bodyColor:lightTheme?'#23262C':'#EAE6DA',
+          titleFont:{family:'JetBrains Mono', size:10}, bodyFont:{family:'JetBrains Mono', size:11},
+          padding:8,
+          callbacks:{ label: c => fmtPct(c.parsed.y) }
+        }
+      }
+    },
+    plugins:[zeroLinePlugin]
+  });
+  miniCharts[w.id] = mini;
+});
+
+function refreshCardsAndMinis(){
+  WINDOWS.forEach(w=>{
+    const s = seriesStats(w.id);
+    const card = grid.querySelector('.card[data-id="'+w.id+'"]');
+    const curEl = card.querySelector('.card-current');
+    curEl.textContent = fmtPct(s.current.v);
+    curEl.className = 'card-current ' + (s.current.v>=0?'pos':'neg');
+    const footSpans = card.querySelectorAll('.card-foot span');
+    footSpans[0].textContent = 'Trough ' + fmtPct(s.min.v);
+    footSpans[1].textContent = 'Peak ' + fmtPct(s.max.v);
+
+    const mini = miniCharts[w.id];
+    const pts = currentSeries()[w.id];
+    mini.data.datasets[0].data = pts.map(p=>({x:toDate(p.d),y:p.v}));
+    const tip = mini.options.plugins.tooltip;
+    tip.backgroundColor = TIP_BG;
+    tip.borderColor = TIP_BORDER;
+    tip.titleColor = lightTheme ? '#23262C' : '#EAE6DA';
+    tip.bodyColor = lightTheme ? '#23262C' : '#EAE6DA';
+    mini.update('none');
+  });
+}
+
+function renderCards(){
+  document.querySelectorAll('.card').forEach(c=>{
+    const id = c.dataset.id;
+    const sel = overlayMode ? overlaySet.has(id) : id===activeId;
+    c.classList.toggle('selected', sel);
+  });
+}
+
+function render(){
+  renderDials();
+  renderCards();
+  renderHero();
+  updateTicker();
+  refreshCardsAndMinis();
+}
+
+render();
+</script>
+</body>
+</html>
