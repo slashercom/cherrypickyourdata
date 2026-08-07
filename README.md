@@ -11,6 +11,8 @@ horizons (6 months → 25 years), in both nominal and inflation-adjusted terms.
 | `template.html` | The actual source of the page. Edit this for design/copy changes. |
 | `build_site.py` | Fetches data, computes rolling returns, renders `template.html` → `index.html`. |
 | `data/monthly.csv` | Cached raw data (price + CPI). Fallback if the source is unreachable. |
+| `sitemap.xml`, `robots.txt` | Generated. Tell search engines what to index. |
+| `og-image.png`, `favicon.svg` | Generated. Social preview card and browser icon. |
 | `.github/workflows/update-data.yml` | Daily job that reruns the build and commits any changes. |
 
 Data comes from Robert Shiller's *Irrational Exuberance* dataset
@@ -91,6 +93,28 @@ files. The template uses four placeholders that the build script fills in:
 `__DATA_JSON__`, `__WINDOWS_JSON__`, `__FIRST_DATE__`, `__LAST_DATE__`,
 plus `__LATEST_MONTH__` and `__BUILD_DATE__` for the footer stamp.
 
+## Data sources and safety rails
+
+The build tries sources in order and **only publishes data that moves forward
+in time**:
+
+1. **Shiller's `ie_data.xls`** (Yale) - preferred, since price and CPI come
+   from one internally consistent file.
+2. **Yahoo Finance (^GSPC) + FRED (CPIAUCSL)** - automatic fallback. Daily
+   closes are averaged to monthly to match Shiller's convention, and the CPI
+   is rebased onto the cached series' scale so the real returns don't jump at
+   the join.
+
+Three rules protect the live site:
+
+- A source whose latest month is **not newer than the cache** is ignored.
+- History is never rewritten - only months past the cache's end are appended.
+- The cache is written **only after** new data has been accepted, so a bad
+  fetch can't poison it.
+
+If every source fails or none is newer, the job exits cleanly and the
+published page is left exactly as it was.
+
 ## If the data source ever moves
 
 Shiller's file has lived at `econ.yale.edu/~shiller/data/ie_data.xls` for years,
@@ -105,3 +129,28 @@ data) rather than breaking.
   total return by roughly 2%/yr historically.
 - Monthly resolution, so figures differ slightly from daily-close calculations.
 - Chart.js loads from jsDelivr; the page needs internet access to render.
+
+## SEO
+
+The build generates everything search engines need:
+
+- **Meta tags** — title, description, canonical URL. The description auto-updates
+  with the latest data month, so it never goes stale.
+- **Open Graph + Twitter cards** — link previews on social/messaging apps, using
+  `og-image.png`, which is regenerated from live data on every build.
+- **JSON-LD structured data** — `Dataset` markup (this page is a dataset, and
+  Google indexes those specially) plus `FAQPage` markup for the FAQ section.
+- **`sitemap.xml` / `robots.txt`** — with `lastmod` refreshed on each rebuild.
+
+### After deploying, do these once
+
+1. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)) —
+   add `www.cherrypickyourdata.com`, verify via the HTML-tag method (paste the tag
+   into `template.html`'s `<head>`, rebuild, commit), then submit
+   `https://www.cherrypickyourdata.com/sitemap.xml`.
+2. **Bing Webmaster Tools** — same, and it can import directly from Search Console.
+3. **Test your rich results** with Google's
+   [Rich Results Test](https://search.google.com/test/rich-results) and preview
+   link cards with [opengraph.xyz](https://www.opengraph.xyz/).
+
+Indexing takes days to weeks. Don't panic if you're not in results on day one.
