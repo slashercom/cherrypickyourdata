@@ -464,6 +464,39 @@ def build(df):
         print(f"WARNING: could not render og-image.png ({exc})", file=sys.stderr)
 
 
+def months_behind(last_month):
+    """How many months stale the newest data point is, relative to today."""
+    today = dt.date.today()
+    return (today.year - last_month.year) * 12 + (today.month - last_month.month)
+
+
+STALE_LIMIT = 3   # months; monthly data legitimately lags by 1-2
+
+
+def check_freshness(df):
+    """
+    Loud alarm for stale data.
+
+    A quiet 'nothing new today' is normal. Data that is months behind is not,
+    and it must not be able to masquerade as a successful run -- so this exits
+    non-zero, which turns the Actions run red and emails you.
+    """
+    lm = latest_month(df)
+    behind = months_behind(lm)
+    if behind > STALE_LIMIT:
+        print(
+            f"\nERROR: newest data is {lm} - {behind} months behind today.\n"
+            f"       Every source has likely gone stale or is failing.\n"
+            f"       The published page has NOT been changed.\n"
+            f"       Check the fetch errors above, then see the README section\n"
+            f"       'If the data source ever moves'.",
+            file=sys.stderr,
+        )
+        return False
+    print(f"Freshness OK: data through {lm} ({behind} month(s) behind)")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--offline", action="store_true",
@@ -515,12 +548,12 @@ def main():
     if added == 0 and not args.force:
         print("No source had newer data than the cache. "
               "Leaving the published page untouched.")
-        return 0
+        return 0 if check_freshness(cache) else 1
 
     # Only now is it safe to persist -- the data has been proven to move forward.
     save_cache(merged)
     build(merged)
-    return 0
+    return 0 if check_freshness(merged) else 1
 
 
 if __name__ == "__main__":
