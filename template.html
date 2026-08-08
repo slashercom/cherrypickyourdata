@@ -3,12 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>S&amp;P 500 &mdash; Rolling Returns Instrument</title>
+<title>S&amp;P 500 Rolling Returns Explorer &mdash; 6 Months to 25 Years, Nominal &amp; Real</title>
+<meta name="description" content="Interactive S&amp;P 500 rolling annualized returns across ten horizons, from 6 months to 25 years, in nominal and inflation-adjusted terms. Monthly data from 1950 to __LATEST_MONTH__, updated automatically.">
+<link rel="canonical" href="__SITE_URL__/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Cherry Pick Your Data">
+<meta name="theme-color" content="#15171C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FBF9F4" media="(prefers-color-scheme: light)">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cherry Pick Your Data">
+<meta property="og:url" content="__SITE_URL__/">
+<meta property="og:title" content="S&amp;P 500 Rolling Returns Explorer">
+<meta property="og:description" content="Ten lenses on the same market: rolling annualized S&amp;P 500 returns from 6 months to 25 years, nominal and inflation-adjusted. Data through __LATEST_MONTH__.">
+<meta property="og:image" content="__SITE_URL__/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chart of S&amp;P 500 rolling annualized returns across ten time horizons">
+<meta property="og:locale" content="en_US">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="S&amp;P 500 Rolling Returns Explorer">
+<meta name="twitter:description" content="Rolling annualized S&amp;P 500 returns across ten horizons, nominal and inflation-adjusted. Data through __LATEST_MONTH__.">
+<meta name="twitter:image" content="__SITE_URL__/og-image.png">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script type="application/ld+json">__JSONLD__</script>
 <style>
   :root{
     --ink: #15171C;
@@ -221,6 +246,29 @@
   .chart-box{position:relative;height:78px;width:100%;}
   .card-foot{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parchment-dim);margin-top:4px;}
 
+  .faq-section{padding:0 0 70px;}
+  .faq details{
+    border-top:1px solid var(--hair);
+    padding:14px 0;
+  }
+  .faq details:last-child{border-bottom:1px solid var(--hair);}
+  .faq summary{
+    font-family:'Fraunces',serif;font-size:17px;font-weight:500;
+    cursor:pointer;list-style:none;display:flex;justify-content:space-between;
+    align-items:center;gap:16px;color:var(--parchment);
+  }
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{
+    content:'+';font-family:'JetBrains Mono',monospace;font-size:19px;
+    color:var(--amber-bright);flex-shrink:0;transition:transform .18s ease;
+  }
+  .faq details[open] summary::after{content:'\2212';}
+  .faq summary:hover{color:var(--amber-bright);}
+  .faq p{
+    font-size:14.5px;line-height:1.7;color:var(--parchment-dim);
+    margin:12px 0 4px;max-width:78ch;
+  }
+
   footer{
     border-top:1px solid var(--hair);
     padding:30px 0 60px;
@@ -325,6 +373,60 @@
   </div>
 </section>
 
+<section class="faq-section">
+  <div class="wrap">
+    <h3 class="grid-title">Questions worth asking</h3>
+    <p class="grid-sub">What these numbers do and don't tell you.</p>
+    <div class="faq">
+      <details>
+        <summary>What is a rolling return?</summary>
+        <p>An ordinary return measures one fixed start date to one fixed end date. A rolling
+        return recalculates that same measurement at every point in time &mdash; so instead of
+        "the market returned 8% from 2010 to 2020," you see what a 10-year holding period
+        returned if you'd started in January 2010, then February 2010, then March, and so on.
+        It answers a more useful question: not "what happened," but "what would have happened
+        to me depending on when I happened to start?"</p>
+      </details>
+      <details>
+        <summary>Why do longer horizons look so much calmer?</summary>
+        <p>Partly because they genuinely are &mdash; good and bad years offset each other &mdash;
+        and partly because annualizing compresses them. A 60% crash in one year is a 60% drop
+        on the 1-year line, but spread across a 25-year window it becomes a couple of percentage
+        points per year. Both effects are real, but it's worth remembering the calm of the
+        25-year line is partly a measurement artifact, not just market serenity.</p>
+      </details>
+      <details>
+        <summary>Do these figures include dividends?</summary>
+        <p>No. These are price returns only. Historically dividends have added roughly two
+        percentage points per year, so a total-return version of this page would sit meaningfully
+        higher &mdash; particularly on the long horizons, where that gap compounds. If you're
+        comparing these numbers to a fund's reported performance, that fund almost certainly
+        includes reinvested dividends and will look better as a result.</p>
+      </details>
+      <details>
+        <summary>What does the inflation-adjusted toggle actually change?</summary>
+        <p>It swaps the underlying price series for a CPI-deflated one, so returns are expressed
+        in constant purchasing power rather than nominal dollars. The gap is not small: over
+        the trailing decade it's worth several percentage points a year. Nominal returns tell
+        you what your statement said; real returns tell you what you could actually buy.</p>
+      </details>
+      <details>
+        <summary>Where does the data come from, and how current is it?</summary>
+        <p>Robert Shiller's long-run dataset, which carries monthly S&amp;P 500 prices and the
+        matching Consumer Price Index back to 1871 in a single file &mdash; so the nominal and
+        real series stay internally consistent. This page checks for new data daily and rebuilds
+        itself when a new month is published. The footer shows the latest month included.</p>
+      </details>
+      <details>
+        <summary>Is this investment advice?</summary>
+        <p>No. It's a historical data visualization. Past returns describe what happened to a
+        specific index over a specific stretch of history; they are not a forecast, and nothing
+        here accounts for your taxes, fees, timeframe, or circumstances.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     Source data: monthly S&amp;P 500 closing levels, Standard &amp; Poor's / Robert Shiller series
@@ -335,7 +437,7 @@
     slightly from daily-resolution calculations. Built as a companion to a Python rolling-returns
     script &mdash; same methodology, now in the browser and clickable.
     <br><br>
-    Data through <strong>__LATEST_MONTH__</strong> &middot; page rebuilt __BUILD_DATE__ &middot;
+    Data through <strong>__LATEST_MONTH__</strong> &middot;
     checked daily, updates automatically as new monthly data is published.
   </div>
 </footer>

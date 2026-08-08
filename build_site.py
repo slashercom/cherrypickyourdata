@@ -331,14 +331,13 @@ def build_jsonld(latest_month, first_month):
                       separators=(",", ":"))
 
 
-def write_seo_files():
-    today = dt.date.today().isoformat()
+def write_seo_files(lastmod):
     with open("sitemap.xml", "w", encoding="utf-8") as f:
         f.write(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
             f"  <url>\n    <loc>{SITE_URL}/</loc>\n"
-            f"    <lastmod>{today}</lastmod>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
             "    <changefreq>monthly</changefreq>\n"
             "    <priority>1.0</priority>\n  </url>\n"
             "</urlset>\n"
@@ -450,13 +449,13 @@ def build(df):
         .replace("__FIRST_DATE__", first_month)
         .replace("__LAST_DATE__", latest["d"])
         .replace("__LATEST_MONTH__", latest["d"])
-        .replace("__BUILD_DATE__", dt.date.today().isoformat())
+        .replace("__BUILD_DATE__", f"{latest['d']}-01")
     )
     with open(OUTPUT, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"Wrote {OUTPUT} ({len(html):,} bytes)")
 
-    write_seo_files()
+    write_seo_files(f"{latest['d']}-01")
     write_favicon()
     try:
         write_og_image(payload)
@@ -546,8 +545,11 @@ def main():
         break
 
     if added == 0 and not args.force:
-        print("No source had newer data than the cache. "
-              "Leaving the published page untouched.")
+        print("No source had newer data than the cache.")
+        # Rebuild anyway: the page must also pick up template/design changes,
+        # not just new data. Output is deterministic, so if genuinely nothing
+        # changed the files are byte-identical and git commits nothing.
+        build(cache)
         return 0 if check_freshness(cache) else 1
 
     # Only now is it safe to persist -- the data has been proven to move forward.
